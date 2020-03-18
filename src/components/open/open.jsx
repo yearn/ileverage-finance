@@ -192,6 +192,8 @@ class Open extends Component {
       const snackbarObj = { snackbarMessage: txHash, snackbarType: 'Hash' }
       that.setState(snackbarObj)
     })
+
+    window.open('https://oasis.app/borrow/owner/'+this.state.account.address,'_blank');
   };
 
   connectionConnected = () => {
