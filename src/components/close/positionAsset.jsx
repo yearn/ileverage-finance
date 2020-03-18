@@ -14,6 +14,8 @@ import {
   ERROR,
   CLOSE_POSITION,
   CLOSE_POSITION_RETURNED,
+  SETTLE_POSITION,
+  SETTLE_POSITION_RETURNED
 } from '../../constants'
 
 import Store from "../../stores";
@@ -77,10 +79,9 @@ const styles = theme => ({
     }
   },
   separator: {
-    borderBottom: '1px solid #E1E1E1',
-    [theme.breakpoints.up('sm')]: {
-      display: 'none'
-    }
+    marginTop: '12px',
+    marginBottom: '12px',
+    borderBottom: '1px solid #E1E1E1'
   },
   scaleContainer: {
     width: '250px',
@@ -175,16 +176,22 @@ class Asset extends Component {
 
   componentWillMount() {
     emitter.on(CLOSE_POSITION_RETURNED, this.closePositionReturned);
+    emitter.on(SETTLE_POSITION_RETURNED, this.settlePositionReturned);
     emitter.on(ERROR, this.errorReturned);
   }
 
   componentWillUnmount() {
     emitter.removeListener(CLOSE_POSITION_RETURNED, this.closePositionReturned);
+    emitter.removeListener(SETTLE_POSITION_RETURNED, this.settlePositionReturned);
     emitter.removeListener(ERROR, this.errorReturned);
   };
 
   closePositionReturned = () => {
     this.setState({ loading: false, amount: '' })
+  };
+
+  settlePositionReturned = () => {
+    this.setState({ loading: false })
   };
 
   errorReturned = (error) => {
@@ -269,6 +276,16 @@ class Asset extends Component {
           variant="outlined"
           color="primary"
           disabled={ loading || !account.address }
+          onClick={ this.onSettlePosition }
+          >
+          <Typography className={ classes.buttonText } variant={ 'h5'} color={'secondary'}>{t('Close.SettlePosition')}</Typography>
+        </Button>
+        <div className={ classes.separator }></div>
+        <Button
+          className={ classes.actionButton }
+          variant="outlined"
+          color="primary"
+          disabled={ loading || !account.address }
           onClick={ this.onClosePosition }
           >
           <Typography className={ classes.buttonText } variant={ 'h5'} color={'secondary'}>{t('Close.ClosePosition')}</Typography>
@@ -289,7 +306,7 @@ class Asset extends Component {
     }
   }
 
-  onClosePosition = (cdp) => {
+  onSettlePosition = () => {
     this.setState({ amountError: false })
 
     const { amount } = this.state
@@ -302,7 +319,15 @@ class Asset extends Component {
     this.setState({ loading: true })
     this.props.startLoading()
 
-    dispatcher.dispatch({ type: CLOSE_POSITION, content: { cdp: this.props.position.id, amount } })
+    dispatcher.dispatch({ type: SETTLE_POSITION, content: { cdp: this.props.position.id, amount } })
+  }
+
+  onClosePosition = () => {
+
+    this.setState({ loading: true })
+    this.props.startLoading()
+
+    dispatcher.dispatch({ type: CLOSE_POSITION, content: { cdp: this.props.position.id } })
   }
 
   setAmount = (percent) => {

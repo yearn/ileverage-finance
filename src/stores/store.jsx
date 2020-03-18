@@ -9,6 +9,8 @@ import {
   OPEN_POSITION_RETURNED,
   CLOSE_POSITION,
   CLOSE_POSITION_RETURNED,
+  SETTLE_POSITION,
+  SETTLE_POSITION_RETURNED,
   GET_POSITIONS,
   POSITIONS_RETURNED,
   REFRESH_POSITIONS,
@@ -270,10 +272,65 @@ class Store {
 
   closePosition = (payload) => {
     const account = store.getStore('account')
+    const { cdp } = payload.content
+
+    console.log('checking approval')
+    this._checkApprovalSettle(account, cdp, config.dssLeverageContractAddress, (err) => {
+      if(err) {
+        return emitter.emit(ERROR, err);
+      }
+
+      console.log('Calling close')
+      this._callClose(account, cdp, (err, closeResult) => {
+        if(err) {
+          return emitter.emit(ERROR, err);
+        }
+
+        return emitter.emit(CLOSE_POSITION_RETURNED, closeResult)
+      })
+    })
+  }
+
+  _callClose = async (account, cdp, callback) => {
+    const web3 = new Web3(store.getStore('web3context').library.provider);
+
+    const dssLeverageContract = new web3.eth.Contract(config.dssLeverageContractABI, config.dssLeverageContractAddress)
+
+    dssLeverageContract.methods.close(cdp).send({ from: account.address, gasPrice: web3.utils.toWei('6', 'gwei') })
+      .on('transactionHash', function(hash){
+        console.log(hash)
+        callback(null, hash)
+      })
+      .on('confirmation', function(confirmationNumber, receipt){
+        console.log(confirmationNumber, receipt);
+      })
+      .on('receipt', function(receipt){
+        console.log(receipt);
+      })
+      .on('error', function(error) {
+        if (!error.toString().includes("-32601")) {
+          if(error.message) {
+            return callback(error.message)
+          }
+          callback(error)
+        }
+      })
+      .catch((error) => {
+        if (!error.toString().includes("-32601")) {
+          if(error.message) {
+            return callback(error.message)
+          }
+          callback(error)
+        }
+      })
+  }
+
+  settlePosition = (payload) => {
+    const account = store.getStore('account')
     const { amount, cdp } = payload.content
 
     console.log('checking approval')
-    this._checkApprovalSettle(account, cdp, amount, config.dssLeverageContractAddress, (err) => {
+    this._checkApprovalSettle(account, cdp, config.dssLeverageContractAddress, (err) => {
       if(err) {
         return emitter.emit(ERROR, err);
       }
@@ -284,12 +341,12 @@ class Store {
           return emitter.emit(ERROR, err);
         }
 
-        return emitter.emit(CLOSE_POSITION_RETURNED, settleResult)
+        return emitter.emit(SETTLE_POSITION_RETURNED, settleResult)
       })
     })
   }
 
-  _checkApprovalSettle = (account, cdp, amount, contract, callback) => {
+  _checkApprovalSettle = (account, cdp, contract, callback) => {
     const web3 = new Web3(store.getStore('web3context').library.provider);
     // I have no idea????
 

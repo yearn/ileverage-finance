@@ -18,6 +18,7 @@
   "Close.Intro": "Close Position. Simple.",
   "Close.Connect": "Connect wallet",
   "Close.Close": "Close position",
+  "Close.SettlePosition": "Settle CDP",
   "Close.IHave": "Close asset",
   "Close.IWillReceive": "Receive asset",
   "Close.AssetId": "CDP ID",

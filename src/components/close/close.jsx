@@ -23,7 +23,8 @@ import {
   POSITIONS_RETURNED,
   CONNECTION_CONNECTED,
   CONNECTION_DISCONNECTED,
-  CLOSE_POSITION_RETURNED
+  CLOSE_POSITION_RETURNED,
+  SETTLE_POSITION_RETURNED
 } from '../../constants'
 
 import Store from "../../stores";
@@ -204,6 +205,7 @@ class Close extends Component {
     emitter.on(CONNECTION_CONNECTED, this.connectionConnected);
     emitter.on(CONNECTION_DISCONNECTED, this.connectionDisconnected);
     emitter.on(CLOSE_POSITION_RETURNED, this.closePositionReturned);
+    emitter.on(SETTLE_POSITION_RETURNED, this.settlePositionReturned);
   }
 
   componentWillUnmount() {
@@ -212,6 +214,7 @@ class Close extends Component {
     emitter.removeListener(CONNECTION_CONNECTED, this.connectionConnected);
     emitter.removeListener(CONNECTION_DISCONNECTED, this.connectionDisconnected);
     emitter.removeListener(CLOSE_POSITION_RETURNED, this.closePositionReturned);
+    emitter.removeListener(SETTLE_POSITION_RETURNED, this.settlePositionReturned);
   };
 
   refresh() {
@@ -219,6 +222,10 @@ class Close extends Component {
   }
 
   closePositionReturned = () => {
+    this.setState({ loading: false })
+  };
+
+  settlePositionReturned = () => {
     this.setState({ loading: false })
   };
 
