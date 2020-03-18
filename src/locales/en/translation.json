@@ -17,9 +17,13 @@
 
   "Close.Intro": "Close Position. Simple.",
   "Close.Connect": "Connect wallet",
-  "Close.Trade": "Close position",
+  "Close.Close": "Close position",
   "Close.IHave": "Close asset",
   "Close.IWillReceive": "Receive asset",
+  "Close.AssetId": "CDP ID",
+  "Close.Debt": "Debt",
+  "Close.Collateral": "Collateral",
+  "Close.ClosePosition": "Close CDP",
 
   "Asset.ClosePosition":  "Close Position",
   "Asset.ExitPosition":  "Exit Position",

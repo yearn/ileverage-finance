@@ -153,7 +153,7 @@ class Home extends Component {
           <AttachMoneyIcon className={ `${classes.icon} icon` } />
           <Typography variant={'h1'} className={ `${classes.title} title` }>{ t("Home.Open") }</Typography>
         </Card>
-        <Card className={ `${classes.card} ${classes.apr}` } onClick={ () => { /*this.nav(location.pathname+'close')*/ } }>
+        <Card className={ `${classes.card} ${classes.apr}` } onClick={ () => { this.nav(location.pathname+'close') } }>
           <MoneyOffIcon className={ `${classes.icon} icon` } />
           <Typography variant={'h1'} className={ `${classes.title} title` }>{ t("Home.Close") }</Typography>
         </Card>

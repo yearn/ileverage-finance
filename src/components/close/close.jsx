@@ -4,26 +4,28 @@ import { withStyles } from '@material-ui/core/styles';
 import {
   Card,
   Typography,
-  Button
+  Button,
+  ExpansionPanel,
+  ExpansionPanelDetails,
+  ExpansionPanelSummary,
 } from '@material-ui/core';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import { withNamespaces } from 'react-i18next';
 
-import Have from './have'
-import Want from './want'
-import Loader from '../loader'
 import UnlockModal from '../unlock/unlockModal.jsx'
 import Snackbar from '../snackbar'
+import Loader from '../loader'
+import PositionAsset from './positionAsset'
 
 import {
   ERROR,
+  GET_POSITIONS,
+  POSITIONS_RETURNED,
   CONNECTION_CONNECTED,
   CONNECTION_DISCONNECTED,
-  CLOSE_POSITION,
-  CLOSE_POSITION_RETURNED,
-  GET_DEBT_BALANCES,
-  DEBT_BALANCES_RETURNED
+  CLOSE_POSITION_RETURNED
 } from '../../constants'
 
-import { withNamespaces } from 'react-i18next';
 import Store from "../../stores";
 const emitter = Store.emitter
 const dispatcher = Store.dispatcher
@@ -39,29 +41,17 @@ const styles = theme => ({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  tradeContainer: {
+  insuranceContainer: {
+    display: 'flex',
     flex: 1,
-    display: 'flex',
-    flexWrap: 'wrap',
-    padding: '12px',
-    borderRadius: '1.25em',
-    maxWidth: '400px',
-    justifyContent: 'center',
-    marginTop: '20px',
-    [theme.breakpoints.up('md')]: {
-      padding: '24px',
-    }
-  },
-  card: {
-    width: '100%',
-    display: 'flex',
-    flexWrap: 'wrap',
-    maxWidth: '400px',
+    flexDirection: 'column',
+    alignItems: 'center',
     justifyContent: 'center',
     padding: '12px',
     minWidth: '100%',
-    flexDirection: 'column',
-    alignItems: 'center',
+    [theme.breakpoints.up('md')]: {
+      minWidth: '900px',
+    }
   },
   intro: {
     width: '100%',
@@ -69,12 +59,38 @@ const styles = theme => ({
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    maxWidth: '400px'
   },
   introCenter: {
-    minWidth: '100%',
+    maxWidth: '500px',
     textAlign: 'center',
+    display: 'flex',
     padding: '48px 0px'
+  },
+  introText: {
+  },
+  placeholder: {
+    display: 'none',
+    [theme.breakpoints.up('sm')]: {
+      width: '130px',
+      display: 'block'
+    }
+  },
+  addressContainer: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    maxWidth: '100px',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    fontSize: '0.83rem',
+    textOverflow:'ellipsis',
+    cursor: 'pointer',
+    padding: '10px',
+    borderRadius: '0.75rem',
+    height: 'max-content',
+    [theme.breakpoints.up('md')]: {
+      maxWidth: '130px',
+      width: '100%'
+    }
   },
   connectContainer: {
     padding: '12px',
@@ -103,27 +119,54 @@ const styles = theme => ({
     fontWeight: '700',
     color: 'white',
   },
-  sepperator: {
-    borderBottom: '1px solid #E1E1E1',
-    minWidth: '100%',
-    marginBottom: '24px',
-    marginTop: '24px'
+  expansionPanel: {
+    maxWidth: 'calc(100vw - 24px)',
+    width: '100%'
   },
-  addressContainer: {
+  heading: {
+    display: 'none',
+    paddingTop: '12px',
+    flex: 1,
+    [theme.breakpoints.up('sm')]: {
+      paddingTop: '5px',
+      display: 'block',
+      padding: '0px 12px'
+    }
+  },
+  headingName: {
+    paddingTop: '5px',
+    flex: 1,
+    flexShrink: 0,
     display: 'flex',
-    justifyContent: 'space-between',
-    maxWidth: '100px',
-    overflow: 'hidden',
-    whiteSpace: 'nowrap',
-    fontSize: '0.83rem',
-    textOverflow:'ellipsis',
+    alignItems: 'center',
+    minWidth: '100%',
+    [theme.breakpoints.up('sm')]: {
+      minWidth: 'auto',
+    }
+  },
+  assetSummary: {
+    display: 'flex',
+    alignItems: 'center',
+    flex: 1,
+    flexWrap: 'wrap',
+    [theme.breakpoints.up('sm')]: {
+      flexWrap: 'nowrap'
+    }
+  },
+  assetIcon: {
+    display: 'flex',
+    alignItems: 'center',
+    verticalAlign: 'middle',
+    borderRadius: '20px',
+    height: '30px',
+    width: '80px',
+    textAlign: 'center',
     cursor: 'pointer',
-    padding: '10px',
-    borderRadius: '0.75rem',
-    height: 'max-content',
-    [theme.breakpoints.up('md')]: {
-      maxWidth: '130px',
-      width: '100%'
+    marginRight: '20px',
+    [theme.breakpoints.up('sm')]: {
+      height: '40px',
+      width: '100px',
+      marginRight: '24px',
     }
   },
   disaclaimer: {
@@ -131,74 +174,65 @@ const styles = theme => ({
     border: '1px solid rgb(174, 174, 174)',
     borderRadius: '0.75rem',
     marginBottom: '24px',
-  },
-  notConnectedContainer: {
-    display: 'flex',
-    flex: 1,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '12px',
-    minWidth: '100%',
-    [theme.breakpoints.up('md')]: {
-      minWidth: '800px',
-    }
-  },
+  }
 });
 
 class Close extends Component {
 
-  constructor() {
+  constructor(props) {
     super()
 
     const account = store.getStore('account')
 
     this.state = {
+      positions: store.getStore('positions'),
       account: account,
-      collateralOptions: store.getStore('collateralOptions'),
-      collateralAsset: { id: 'dai' },
-      collateralAmount: '',
-      receiveAmount: '',
-      receiveAsset: { id: 'usdc' },
+      modalOpen: false,
+      modalInvestAllOpen: false,
+      snackbarType: null,
+      snackbarMessage: null,
+      expanded: 'oCurve.fi'
     }
 
     if(account && account.address) {
-      dispatcher.dispatch({ type: GET_DEBT_BALANCES, content: {} })
+      dispatcher.dispatch({ type: GET_POSITIONS, content: {} });
     }
   }
-
   componentWillMount() {
     emitter.on(ERROR, this.errorReturned);
+    emitter.on(POSITIONS_RETURNED, this.positionsReturned);
     emitter.on(CONNECTION_CONNECTED, this.connectionConnected);
     emitter.on(CONNECTION_DISCONNECTED, this.connectionDisconnected);
-    emitter.on(CLOSE_POSITION_RETURNED, this.closeReturned);
-    emitter.on(DEBT_BALANCES_RETURNED, this.debtReturned);
+    emitter.on(CLOSE_POSITION_RETURNED, this.closePositionReturned);
   }
 
   componentWillUnmount() {
     emitter.removeListener(ERROR, this.errorReturned);
+    emitter.removeListener(POSITIONS_RETURNED, this.positionsReturned);
     emitter.removeListener(CONNECTION_CONNECTED, this.connectionConnected);
     emitter.removeListener(CONNECTION_DISCONNECTED, this.connectionDisconnected);
-    emitter.removeListener(CLOSE_POSITION_RETURNED, this.closeReturned);
-    emitter.removeListener(DEBT_BALANCES_RETURNED, this.debtReturned);
+    emitter.removeListener(CLOSE_POSITION_RETURNED, this.closePositionReturned);
   };
 
-  closeReturned = (txHash) => {
-    console.log(txHash)
-    this.setState({ snackbarMessage: null, snackbarType: null, loading: false, collateralAmount: '' })
-    const that = this
-    setTimeout(() => {
-      const snackbarObj = { snackbarMessage: txHash, snackbarType: 'Hash' }
-      that.setState(snackbarObj)
-    })
+  refresh() {
+    dispatcher.dispatch({ type: GET_POSITIONS, content: {} });
+  }
+
+  closePositionReturned = () => {
+    this.setState({ loading: false })
+  };
+
+  positionsReturned = (balances) => {
+    this.setState({ positions: store.getStore('positions') })
+    setTimeout(this.refresh,15000);
   };
 
   connectionConnected = () => {
-    const { t } = this.props
-
     this.setState({ account: store.getStore('account') })
 
-    dispatcher.dispatch({ type: GET_DEBT_BALANCES, content: {} })
+    const { t } = this.props
+
+    dispatcher.dispatch({ type: GET_POSITIONS, content: {} });
 
     const that = this
     setTimeout(() => {
@@ -209,43 +243,12 @@ class Close extends Component {
 
   connectionDisconnected = () => {
     this.setState({ account: store.getStore('account') })
-  };
-
-  debtReturned = (balances) => {
-
-    const collateralOptions = store.getStore('collateralOptions')
-    const { collateralAsset, receiveAsset } = this.state
-
-    let colAsset = collateralOptions.filter((asset) => { return asset.id === collateralAsset.id })
-
-    if(colAsset.length > 0) {
-      colAsset = colAsset[0]
-    } else {
-      colAsset = null
-    }
-
-    let recAsset = collateralOptions.filter((asset) => { return asset.id === receiveAsset.id })
-
-    if(colAsset.length > 0) {
-      recAsset = recAsset[0]
-    } else {
-      recAsset = null
-    }
-
-    this.setState({
-      collateralOptions: collateralOptions,
-      collateralAsset: colAsset,
-      receiveAsset: recAsset
-    })
-
-    const that = this
-    setTimeout(() => {
-      that.setCollateralAmountPercent(100)
-    }, 50)
-  };
+  }
 
   errorReturned = (error) => {
-    this.setState({ snackbarMessage: null, snackbarType: null, loading: false })
+    const snackbarObj = { snackbarMessage: null, snackbarType: null }
+    this.setState(snackbarObj)
+    this.setState({ loading: false })
     const that = this
     setTimeout(() => {
       const snackbarObj = { snackbarMessage: error.toString(), snackbarType: 'Error' }
@@ -256,13 +259,8 @@ class Close extends Component {
   render() {
     const { classes, t } = this.props;
     const {
-      account,
       loading,
-      collateralOptions,
-      collateralAsset,
-      collateralAmount,
-      receiveAsset,
-      receiveAmount,
+      account,
       modalOpen,
       snackbarMessage,
     } = this.state
@@ -274,12 +272,26 @@ class Close extends Component {
 
     return (
       <div className={ classes.root }>
-        { !account.address &&
-          <div className={ classes.notConnectedContainer }>
-            <Typography variant={'h5'} className={ classes.disaclaimer }>This project is in beta. Use at your own risk.</Typography>
+        <div className={ classes.insuranceContainer }>
+        <Typography variant={'h5'} className={ classes.disaclaimer }>This project is in beta. Use at your own risk.</Typography>
+        { account.address &&
+            <div className={ classes.intro }>
+              <div className={ classes.placeholder }>
+              </div>
+              <Typography variant='h2' className={ classes.introText }>{ t('Close.Intro') }</Typography>
+              <Card className={ classes.addressContainer } onClick={this.overlayClicked}>
+                <Typography variant={ 'h5'} noWrap>{ address }</Typography>
+                <div style={{ background: '#DC6BE5', opacity: '1', borderRadius: '10px', width: '10px', height: '10px', marginRight: '3px', marginTop:'3px', marginLeft:'6px' }}></div>
+              </Card>
+            </div>
+          }
+          { !account.address &&
             <div className={ classes.introCenter }>
               <Typography variant='h2'>{ t('Close.Intro') }</Typography>
             </div>
+          }
+
+          {!account.address &&
             <div className={ classes.connectContainer }>
               <Button
                 className={ classes.actionButton }
@@ -291,83 +303,64 @@ class Close extends Component {
                 <Typography className={ classes.buttonText } variant={ 'h5'}>{ t('Close.Connect') }</Typography>
               </Button>
             </div>
-          </div>
-        }
-        { account.address &&
-          <div className={ classes.card }>
-            <Typography variant={'h5'} className={ classes.disaclaimer }>This project is in beta. Use at your own risk.</Typography>
-            <div className={ classes.intro }>
-              <Typography variant='h2' className={ classes.introText }>{ t('Close.Intro') }</Typography>
-              <Card className={ classes.addressContainer } onClick={this.overlayClicked}>
-                <Typography variant={ 'h5'} noWrap>{ address }</Typography>
-                <div style={{ background: '#DC6BE5', opacity: '1', borderRadius: '10px', width: '10px', height: '10px', marginRight: '3px', marginTop:'3px', marginLeft:'6px' }}></div>
-              </Card>
-            </div>
-            <Card className={ classes.tradeContainer }>
-              <Have collateralOptions={ collateralOptions } setCollateralAsset={ this.setCollateralAsset } collateralAsset={ collateralAsset } collateralAmount={ collateralAmount } setCollateralAmount={ this.setCollateralAmount } setCollateralAmountPercent={ this.setCollateralAmountPercent } loading={ loading } />
-              <div className={ classes.sepperator }></div>
-              <Want receiveOptions={ collateralOptions } setReceiveAsset={ this.setReceiveAsset } receiveAsset={ receiveAsset } receiveAmount={ receiveAmount } loading={ loading } />
-              <div className={ classes.sepperator }></div>
-              <Button
-                className={ classes.actionButton }
-                variant="outlined"
-                color="primary"
-                disabled={ loading }
-                onClick={ this.onClose }
-                fullWidth
-                >
-                <Typography className={ classes.buttonText } variant={ 'h5'} color='secondary'>{ t('Close.Trade') }</Typography>
-              </Button>
-            </Card>
-          </div>
-        }
+          }
+          { account.address && this.renderAssetBlocks() }
+        </div>
+        { loading && <Loader /> }
         { modalOpen && this.renderModal() }
         { snackbarMessage && this.renderSnackbar() }
-        { loading && <Loader /> }
       </div>
     )
   };
 
-  onClose = () => {
-    this.setState({ collateralAmountError: false })
+  onChange = (event) => {
+    let val = []
+    val[event.target.id] = event.target.checked
+    this.setState(val)
+  };
 
-    const { collateralAsset, collateralAmount, receiveAsset } = this.state
+  renderAssetBlocks = () => {
+    const { positions, expanded } = this.state
+    const { classes, t } = this.props
+    const width = window.innerWidth
 
-    // if(!collateralAmount || isNaN(collateralAmount) || collateralAmount <= 0 || parseFloat(collateralAmount) > collateralAsset.position) {
-    //   this.setState({ collateralAmountError: true })
-    //   return false
-    // }
+    return positions.map((position) => {
+      return (
+        <ExpansionPanel className={ classes.expansionPanel } square key={ position.id+"_expand" } expanded={ expanded === position.id} onChange={ () => { this.handleChange(position.id) } }>
+          <ExpansionPanelSummary
+            expandIcon={<ExpandMoreIcon />}
+            aria-controls="panel1bh-content"
+            id="panel1bh-header"
+          >
+            <div className={ classes.assetSummary }>
+              <div className={classes.heading}>
+                <Typography variant={ 'h3' }>{ position.id }</Typography>
+                <Typography variant={ 'h5' }>{ t('Close.AssetId') }</Typography>
+              </div>
+              <div className={classes.heading}>
+                <Typography variant={ 'h3' }>{ (position.collateral ? parseFloat(position.collateral).toFixed(4) : '0.0000')+' ' }</Typography>
+                <Typography variant={ 'h5' }>{ t('Close.Collateral') }</Typography>
+              </div>
+              <div className={classes.heading}>
+                <Typography variant={ 'h3' }>{ (position.debt > 0 ? parseFloat(position.debt).toFixed(4) : '0.0000')+' '}</Typography>
+                <Typography variant={ 'h5' }>{ t('Close.Debt') }</Typography>
+              </div>
+            </div>
+          </ExpansionPanelSummary>
+          <ExpansionPanelDetails>
+            <PositionAsset position={ position } startLoading={ this.startLoading } />
+          </ExpansionPanelDetails>
+        </ExpansionPanel>
+      )
+    })
+  }
 
+  handleChange = (id) => {
+    this.setState({ expanded: this.state.expanded === id ? null : id })
+  }
+
+  startLoading = () => {
     this.setState({ loading: true })
-    dispatcher.dispatch({ type: CLOSE_POSITION, content: { collateralAsset: collateralAsset, collateralAmount: collateralAmount, receiveAsset: receiveAsset } })
-  }
-
-  setReceiveAsset = (asset) => {
-    this.setState({ receiveAsset: asset })
-  }
-
-  setCollateralAsset = (asset) => {
-    this.setState({ collateralAsset: asset })
-  }
-
-  setCollateralAmount = (amount) => {
-    this.setState({ collateralAmount: amount })
-  }
-
-  setCollateralAmountPercent = (percent) => {
-    const { collateralAsset } = this.state
-
-    const position = collateralAsset.balance
-    let collateralAmount = position*percent/100
-
-    collateralAmount = Math.floor(collateralAmount*10000)/10000;
-    this.setState({ collateralAmount: collateralAmount.toFixed(4) })
-  }
-
-  renderModal = () => {
-    return (
-      <UnlockModal closeModal={ this.closeModal } modalOpen={ this.state.modalOpen } />
-    )
   }
 
   renderSnackbar = () => {
@@ -377,6 +370,12 @@ class Close extends Component {
     } = this.state
     return <Snackbar type={ snackbarType } message={ snackbarMessage } open={true}/>
   };
+
+  renderModal = () => {
+    return (
+      <UnlockModal closeModal={ this.closeModal } modalOpen={ this.state.modalOpen } />
+    )
+  }
 
   overlayClicked = () => {
     this.setState({ modalOpen: true })

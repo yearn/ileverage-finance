@@ -11,7 +11,7 @@ import './i18n';
 import tradeTheme from './theme';
 
 import Open from './components/open';
-// import Close from './components/close';
+import Close from './components/close';
 import Footer from './components/footer';
 import Home from './components/home';
 
@@ -35,9 +35,9 @@ class App extends Component {
               <Route path="/open">
                 <Open />
               </Route>
-              {/*<Route path="/close">
+              <Route path="/close">
                 <Close />
-              </Route>*/}
+              </Route>
               <Route path="/">
                 <Home />
               </Route>

@@ -1,22 +1,18 @@
 import config from "../config";
 import async from 'async';
-// import * as moment from 'moment';
+
 import {
   ERROR,
   GET_BALANCES,
   BALANCES_RETURNED,
   OPEN_POSITION,
   OPEN_POSITION_RETURNED,
-  GET_DEBT_BALANCES,
-  DEBT_BALANCES_RETURNED,
-  EXIT_POSITION,
-  EXIT_POSITION_RETURNED,
   CLOSE_POSITION,
   CLOSE_POSITION_RETURNED,
-  WITHDRAW_PRINCIPAL,
-  WITHDRAW_PRINCIPAL_RETURNED,
-  REPAY_DEBT,
-  REPAY_DEBT_RETURNED,
+  GET_POSITIONS,
+  POSITIONS_RETURNED,
+  REFRESH_POSITIONS,
+  REFRESH_POSITIONS_RETURNED
 } from '../constants';
 import Web3 from 'web3';
 
@@ -103,6 +99,7 @@ class Store {
           code: 'zh'
         }
       ],
+      positions: []
     }
 
     dispatcher.register(
@@ -114,20 +111,14 @@ class Store {
           case OPEN_POSITION:
             this.openPosition(payload)
             break;
-          case GET_DEBT_BALANCES:
-            this.getDebtBalances(payload)
-            break;
-          case EXIT_POSITION:
-            this.exitPosition(payload)
-            break;
           case CLOSE_POSITION:
             this.closePosition(payload)
             break;
-          case WITHDRAW_PRINCIPAL:
-            this.withdrawPrincipal(payload)
+          case GET_POSITIONS:
+            this.getPositions(payload)
             break;
-          case REPAY_DEBT:
-            this.repayDebt(payload)
+          case REFRESH_POSITIONS:
+            this.refreshPositions(payload)
             break;
           default: {
           }
@@ -275,177 +266,42 @@ class Store {
       })
   }
 
-  getDebtBalances = (payload) => {
-    const account = store.getStore('account')
-    const assets = store.getStore('collateralOptions')
-
-    const web3 = new Web3(store.getStore('web3context').library.provider);
-
-    async.map(assets, (asset, callback) => {
-      async.parallel([
-        // (callbackInner) => { this._getDebt(web3, asset, account, callbackInner) },
-        // (callbackInner) => { this._getPrincipal(web3, asset, account, callbackInner) },
-        // (callbackInner) => { this._getUserInterest(web3, asset, account, callbackInner) },
-        // (callbackInner) => { this._getPosition(web3, asset, account, callbackInner) },
-        (callbackInner) => { this._getERC20Balance(web3, asset, account, callbackInner) },
-      ], (err, data) => {
-        asset.balance = data[0]
-        // asset.debt = data[1]
-        // asset.principal = data[2]
-        // asset.interest = data[3]
-        // asset.position = data[4]
-
-        callback(null, asset)
-      })
-    }, (err, assets) => {
-      if(err) {
-        return emitter.emit(ERROR, err)
-      }
-
-      store.setStore({ collateralOptions: assets })
-      return emitter.emit(DEBT_BALANCES_RETURNED, assets)
-    })
-  }
-
-  _getDebt = async (web3, asset, account, callback) => {
-    let traderContract = new web3.eth.Contract(config.traderContractABI, config.traderContractAddress)
-
-    try {
-      let debt = await traderContract.methods.getUserDebt(asset.erc20address, account.address).call({ from: account.address });
-      if(debt > (10**30)) {
-        debt = 0
-      }
-      debt = parseFloat(debt)/10**asset.decimals
-      callback(null, parseFloat(debt))
-    } catch(ex) {
-      console.log(ex)
-      return callback(ex)
-    }
-  }
-
-  _getPrincipal = async (web3, asset, account, callback) => {
-    let traderContract = new web3.eth.Contract(config.traderContractABI, config.traderContractAddress)
-
-    try {
-      let principal = await traderContract.methods.principals(asset.erc20address, account.address).call({ from: account.address });
-      principal = parseFloat(principal)/10**asset.decimals
-      callback(null, parseFloat(principal))
-    } catch(ex) {
-      console.log(ex)
-      return callback(ex)
-    }
-  }
-
-  _getUserInterest = async (web3, asset, account, callback) => {
-    let traderContract = new web3.eth.Contract(config.traderContractABI, config.traderContractAddress)
-
-    try {
-      let interest = await traderContract.methods.getUserInterest(asset.erc20address, account.address).call({ from: account.address });
-      if(interest > (10**30)) {
-        interest = 0
-      }
-      interest = parseFloat(interest)/10**asset.decimals
-      callback(null, parseFloat(interest))
-    } catch(ex) {
-      console.log(ex)
-      return callback(ex)
-    }
-  }
-
-  _getPosition = async (web3, asset, account, callback) => {
-    let traderContract = new web3.eth.Contract(config.traderContractABI, config.traderContractAddress)
-
-    try {
-      let position = await traderContract.methods.positions(asset.erc20address, account.address).call({ from: account.address });
-      position = parseFloat(position)/10**asset.decimals
-      callback(null, parseFloat(position))
-    } catch(ex) {
-      console.log(ex)
-      return callback(ex)
-    }
-  }
-
   closePosition = (payload) => {
     const account = store.getStore('account')
-    const { collateralAsset, receiveAsset, collateralAmount } = payload.content
+    const { amount, cdp } = payload.content
 
-    console.log(collateralAsset)
-    console.log(receiveAsset)
-    console.log(collateralAmount)
-
-    // this._callClosePosition(collateralAsset, receiveAsset, account, collateralAmount, (err, tradeResult) => {
-    //   if(err) {
-    //     return emitter.emit(ERROR, err);
-    //   }
-    //
-    //   return emitter.emit(TRADE_POSITION_RETURNED, tradeResult)
-    // })
-    return emitter.emit(CLOSE_POSITION_RETURNED, 'hash')
-  }
-
-  _callClosePosition = async (collateralAsset, receiveAsset, account, amount, callback) => {
-    const web3 = new Web3(store.getStore('web3context').library.provider);
-
-    const collateralContract = new web3.eth.Contract(config.traderContractABI, config.traderContractAddress)
-
-    var amountToSend = (amount*10**collateralAsset.decimals) + ''
-    var amountToReceive = (amount*0.97*10**receiveAsset.decimals).toFixed(0) + ''
-
-    collateralContract.methods.tradePosition(collateralAsset.erc20address, receiveAsset.erc20address, amountToSend, amountToReceive).send({ from: account.address, gasPrice: web3.utils.toWei('6', 'gwei') })
-      .on('transactionHash', function(hash){
-        console.log(hash)
-        callback(null, hash)
-      })
-      .on('confirmation', function(confirmationNumber, receipt){
-        console.log(confirmationNumber, receipt);
-      })
-      .on('receipt', function(receipt){
-        console.log(receipt);
-      })
-      .on('error', function(error) {
-        if (!error.toString().includes("-32601")) {
-          if(error.message) {
-            return callback(error.message)
-          }
-          callback(error)
-        }
-      })
-      .catch((error) => {
-        if (!error.toString().includes("-32601")) {
-          if(error.message) {
-            return callback(error.message)
-          }
-          callback(error)
-        }
-      })
-  }
-
-  repayDebt = (payload) => {
-    const account = store.getStore('account')
-    const { asset, amount } = payload.content
-
-    this._checkApproval(asset, account, amount, config.traderContractAddress, (err) => {
+    console.log('checking approval')
+    this._checkApprovalSettle(amount, config.dssLeverageContractAddress, (err) => {
       if(err) {
         return emitter.emit(ERROR, err);
       }
-      this._callRepayDebt(asset, account, amount, (err, res) => {
+
+      console.log('Calling settle')
+      this._callSettle(account, amount, cdp, (err, settleResult) => {
         if(err) {
           return emitter.emit(ERROR, err);
         }
 
-        return emitter.emit(REPAY_DEBT_RETURNED, res)
+        return emitter.emit(CLOSE_POSITION_RETURNED, settleResult)
       })
     })
   }
 
-  _callRepayDebt = async (asset, account, amount, callback) => {
+  _checkApprovalSettle = (amount, contract, callback) => {
+    callback()
+  }
+
+  _callSettle = async (account, amount, cdp, callback) => {
     const web3 = new Web3(store.getStore('web3context').library.provider);
 
-    const collateralContract = new web3.eth.Contract(config.traderContractABI, config.traderContractAddress)
+    const dssLeverageContract = new web3.eth.Contract(config.dssLeverageContractABI, config.dssLeverageContractAddress)
 
-    var amountToSend = (amount*10**asset.decimals) + ''
+    let amountToSend = web3.utils.toWei(amount, "ether")
 
-    collateralContract.methods.repayDebt(asset.erc20address, amountToSend).send({ from: account.address, gasPrice: web3.utils.toWei('6', 'gwei') })
+    console.log(amountToSend)
+    console.log(cdp)
+
+    dssLeverageContract.methods.settle(amountToSend, cdp).send({ from: account.address, gasPrice: web3.utils.toWei('6', 'gwei') })
       .on('transactionHash', function(hash){
         console.log(hash)
         callback(null, hash)
@@ -474,100 +330,130 @@ class Store {
       })
   }
 
-  withdrawPrincipal = (payload) => {
+  getPositions = async (payload) => {
     const account = store.getStore('account')
-    const { asset, amount } = payload.content
+    const web3 = new Web3(store.getStore('web3context').library.provider);
 
-    this._callWithdrawCollateral(asset, account, amount, (err, res) => {
-      if(err) {
-        return emitter.emit(ERROR, err);
-      }
+    this._getProxyRegistry(account, web3, (err, proxy) => {
+      this._getCDPSList(account, web3, proxy, (err, cdpsList) => {
+        console.log(cdpsList[0])
+        async.map(cdpsList[0], (cdpId, callback) => {
+          console.log(cdpId)
+          this._getCDPDataContract(cdpId, callback)
+        }, (err, returnData) => {
 
-      return emitter.emit(WITHDRAW_PRINCIPAL_RETURNED, res)
+          console.log(returnData)
+
+          this.setStore({ positions: returnData })
+
+          return emitter.emit(POSITIONS_RETURNED, returnData)
+        })
+      })
     })
   }
 
-  _callWithdrawCollateral = async (asset, account, amount, callback) => {
-    const web3 = new Web3(store.getStore('web3context').library.provider);
+  _getCDPDataHttp = async (id, callback) => {
+    const serverUrl = 'https://defiexplore.com/api/cdps/'+id
 
-    const collateralContract = new web3.eth.Contract(config.traderContractABI, config.traderContractAddress)
+    const resp = await fetch(serverUrl, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
 
-    var amountToSend = (amount*10**asset.decimals) + ''
+    const data = await resp.json();
 
-    collateralContract.methods.withdrawCollateral(asset.erc20address, amountToSend).send({ from: account.address, gasPrice: web3.utils.toWei('6', 'gwei') })
-      .on('transactionHash', function(hash){
-        console.log(hash)
-        callback(null, hash)
-      })
-      .on('confirmation', function(confirmationNumber, receipt){
-        console.log(confirmationNumber, receipt);
-      })
-      .on('receipt', function(receipt){
-        console.log(receipt);
-      })
-      .on('error', function(error) {
-        if (!error.toString().includes("-32601")) {
-          if(error.message) {
-            return callback(error.message)
-          }
-          callback(error)
-        }
-      })
-      .catch((error) => {
-        if (!error.toString().includes("-32601")) {
-          if(error.message) {
-            return callback(error.message)
-          }
-          callback(error)
-        }
-      })
+    console.log(data)
+
+    callback(null, data)
   }
 
-  exitPosition = (payload) => {
+  _getCDPDataContract = async (id, callback) => {
+    const web3 = new Web3(store.getStore('web3context').library.provider);
+
+    const cdpInfoContract = new web3.eth.Contract(config.cdpInfoABI, config.cdpInfoAdress)
+    const info = await cdpInfoContract.methods.getCdpDetailedInfo(id).call()
+    info.id = id
+    info.collateral = web3.utils.fromWei(info.collateral, "ether")
+    info.debt = web3.utils.fromWei(info.debt, "ether")
+    info.price = web3.utils.fromWei(info.price, "ether")
+    callback(null, info)
+  }
+
+  _getCDPData = async (id, callback) => {
+    const serverUrl = 'https://sai-mainnet.makerfoundation.com/v1'
+    const query = `{
+      getCup(id: ${id}) {
+        id
+        act
+        art
+        block
+        deleted
+        idx
+        guy
+        ink
+        ire
+        lad
+        pip
+        per
+        ratio
+        tab
+        time
+      }
+    }`
+
+    const resp = await fetch(serverUrl, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        query
+      })
+    });
+
+    const { data } = await resp.json();
+
+    callback(null, data)
+  }
+
+  _getProxyRegistry = async (account, web3, callback) => {
+    const proxyRegistryContract = new web3.eth.Contract(config.proxyRegistryABI, config.proxyRegistryAddress)
+    const proxy = await proxyRegistryContract.methods.proxies('0x2d407ddb06311396fe14d4b49da5f0471447d45c'/*account.address*/).call()
+
+    callback(null, proxy)
+  }
+
+  _getCDPSList = async (account, web3, proxy, callback) => {
+    const getCDPsContract = new web3.eth.Contract(config.getCDPsABI, config.getCDPsAddress)
+    const cdps = await getCDPsContract.methods.getCdpsAsc('0x5ef30b9986345249bc32d8928B7ee64DE9435E39', proxy).call()
+
+    callback(null, cdps)
+  }
+
+  refreshPositions = (payload) => {
     const account = store.getStore('account')
-    const { asset } = payload.content
-
-    this._callExit(asset, account, (err, res) => {
-      if(err) {
-        return emitter.emit(ERROR, err);
-      }
-
-      return emitter.emit(EXIT_POSITION_RETURNED, res)
-    })
-  }
-
-  _callExit = async (asset, account, callback) => {
     const web3 = new Web3(store.getStore('web3context').library.provider);
 
-    const collateralContract = new web3.eth.Contract(config.traderContractABI, config.traderContractAddress)
+    this._getProxyRegistry(account, web3, (err, proxy) => {
+      this._getCDPSList(account, web3, proxy, (err, cdpsList) => {
+        console.log(cdpsList[0])
+        async.map(cdpsList[0], (cdpId, callback) => {
+          console.log(cdpId)
+          this._getCDPDataContract(cdpId, callback)
+        }, (err, returnData) => {
 
-    collateralContract.methods.exitReserve(asset.erc20address).send({ from: account.address, gasPrice: web3.utils.toWei('6', 'gwei') })
-      .on('transactionHash', function(hash){
-        console.log(hash)
-        callback(null, hash)
+          console.log(returnData)
+
+          this.setStore({ positions: returnData })
+
+          return emitter.emit(REFRESH_POSITIONS_RETURNED, returnData)
+        })
       })
-      .on('confirmation', function(confirmationNumber, receipt){
-        console.log(confirmationNumber, receipt);
-      })
-      .on('receipt', function(receipt){
-        console.log(receipt);
-      })
-      .on('error', function(error) {
-        if (!error.toString().includes("-32601")) {
-          if(error.message) {
-            return callback(error.message)
-          }
-          callback(error)
-        }
-      })
-      .catch((error) => {
-        if (!error.toString().includes("-32601")) {
-          if(error.message) {
-            return callback(error.message)
-          }
-          callback(error)
-        }
-      })
+    })
   }
 }
 

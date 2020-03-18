@@ -250,7 +250,8 @@ function MyComponent(props) {
     if (account && active && library) {
       store.setStore({ account: { address: account }, web3context: context })
       emitter.emit(CONNECTION_CONNECTED)
-      console.log(CONNECTION_CONNECTED)
+
+      console.log(window.web3)
     }
   }, [account, active, closeModal, context, library]);
 
