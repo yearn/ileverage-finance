@@ -290,41 +290,55 @@ class Store {
   }
 
   _checkApprovalSettle = (account, cdp, amount, contract, callback) => {
-
+    const web3 = new Web3(store.getStore('web3context').library.provider);
     // I have no idea????
 
-    // this._getProxyRegistry(account, web3, async (err, proxy) => {
-    //   const IDssProxyActions = new ethers.utils.Interface(config.dssProxyActionsAbi)
-    //
-    //   const cdpAllowCallbackData = IDssProxyActions
-    //     .functions
-    //     .cdpAllow
-    //     .encode([
-    //         '0x5ef30b9986345249bc32d8928B7ee64DE9435E39',
-    //         cdp,
-    //         proxy,
-    //         '1'
-    //     ])
-    //
-    //
-    //   const dsProxyContract = new ethers.Contract(
-    //       proxyAddress,
-    //       config.dsProxyAbi,
-    //       wallet
-    //   )
-    //
-    //   const approvedDridgeProxyAddressTx = await dsProxyContract.execute(
-    //     '0x82ecd135dce65fbc6dbdd0e4237e0af93ffd5038',
-    //     cdpAllowCallbackData,
-    //     {
-    //       gasLimit: 4000000
-    //     }
-    //   )
-    //
-    //   await approvedDridgeProxyAddressTx.wait()
-    //
-    //   callback()
-    // })
+     this._getProxyRegistry(account, web3, async (err, proxy) => {
+       console.log(proxy);
+       console.log(cdp);
+       let manager = new web3.eth.Contract(config.managerDSSABI, config.managerDSSAddress);
+       const allowed = await manager.methods.cdpCan(proxy, cdp, config.dssLeverageContractAddress).call({ from: account.address })
+       console.log(allowed);
+       if (allowed == 0) {
+         let dssProxyActions = new web3.eth.Contract(config.dssProxyActionsAbi, config.dssProxyActionsAddress);
+         const data = dssProxyActions.methods.cdpAllow(config.managerDSSAddress, cdp, config.dssLeverageContractAddress, 1).encodeABI()
+         console.log(data);
+         let dssProxy = new web3.eth.Contract(config.dsProxyAbi, proxy);
+         console.log(dssProxy);
+         const approval = await dssProxy.methods["execute(address,bytes)"](config.dssProxyActionsAddress, data).send({ from: account.address, gasPrice: web3.utils.toWei('6', 'gwei') })
+         callback()
+       } else {
+         callback()
+       }
+      /* const IDssProxyActions = new ethers.utils.Interface(config.dssProxyActionsAbi)
+
+       const cdpAllowCallbackData = IDssProxyActions
+         .functions
+         .cdpAllow
+         .encode([
+             '0x5ef30b9986345249bc32d8928B7ee64DE9435E39',
+             cdp,
+             proxy,
+             '1'
+         ])
+
+
+       const dsProxyContract = new ethers.Contract(
+           proxyAddress,
+           config.dsProxyAbi,
+           wallet
+       )
+
+       const approvedDridgeProxyAddressTx = await dsProxyContract.execute(
+         '0x82ecd135dce65fbc6dbdd0e4237e0af93ffd5038',
+         cdpAllowCallbackData,
+         {
+           gasLimit: 4000000
+         }
+       )
+
+       await approvedDridgeProxyAddressTx.wait()*/
+     })
   }
 
   _callSettle = async (account, amount, cdp, callback) => {
@@ -458,7 +472,7 @@ class Store {
 
   _getProxyRegistry = async (account, web3, callback) => {
     const proxyRegistryContract = new web3.eth.Contract(config.proxyRegistryABI, config.proxyRegistryAddress)
-    const proxy = await proxyRegistryContract.methods.proxies('0x2d407ddb06311396fe14d4b49da5f0471447d45c'/*account.address*/).call()
+    const proxy = await proxyRegistryContract.methods.proxies(account.address).call()
 
     callback(null, proxy)
   }

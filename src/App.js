@@ -35,9 +35,9 @@ class App extends Component {
               <Route path="/open">
                 <Open />
               </Route>
-              <Route path="/close">
+              {<Route path="/close">
                 <Close />
-              </Route>
+              </Route>}
               <Route path="/">
                 <Home />
               </Route>
