@@ -36,6 +36,8 @@ const Emitter = require('events').EventEmitter;
 const dispatcher = new Dispatcher();
 const emitter = new Emitter();
 
+const ethers = require('ethers');
+
 class Store {
   constructor() {
 
@@ -271,7 +273,7 @@ class Store {
     const { amount, cdp } = payload.content
 
     console.log('checking approval')
-    this._checkApprovalSettle(amount, config.dssLeverageContractAddress, (err) => {
+    this._checkApprovalSettle(account, cdp, amount, config.dssLeverageContractAddress, (err) => {
       if(err) {
         return emitter.emit(ERROR, err);
       }
@@ -287,8 +289,42 @@ class Store {
     })
   }
 
-  _checkApprovalSettle = (amount, contract, callback) => {
-    callback()
+  _checkApprovalSettle = (account, cdp, amount, contract, callback) => {
+
+    // I have no idea????
+
+    // this._getProxyRegistry(account, web3, async (err, proxy) => {
+    //   const IDssProxyActions = new ethers.utils.Interface(config.dssProxyActionsAbi)
+    //
+    //   const cdpAllowCallbackData = IDssProxyActions
+    //     .functions
+    //     .cdpAllow
+    //     .encode([
+    //         '0x5ef30b9986345249bc32d8928B7ee64DE9435E39',
+    //         cdp,
+    //         proxy,
+    //         '1'
+    //     ])
+    //
+    //
+    //   const dsProxyContract = new ethers.Contract(
+    //       proxyAddress,
+    //       config.dsProxyAbi,
+    //       wallet
+    //   )
+    //
+    //   const approvedDridgeProxyAddressTx = await dsProxyContract.execute(
+    //     '0x82ecd135dce65fbc6dbdd0e4237e0af93ffd5038',
+    //     cdpAllowCallbackData,
+    //     {
+    //       gasLimit: 4000000
+    //     }
+    //   )
+    //
+    //   await approvedDridgeProxyAddressTx.wait()
+    //
+    //   callback()
+    // })
   }
 
   _callSettle = async (account, amount, cdp, callback) => {
