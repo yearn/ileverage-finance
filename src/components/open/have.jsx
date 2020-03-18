@@ -126,7 +126,7 @@ class Have extends Component {
           <Typography variant='h3' className={ classes.inputCardHeading }>{ t("Open.IHave") }</Typography>
           <div className={ classes.tradeContainer }>
             { collateralAsset && <div className={ classes.balances }>
-                <Typography variant='h3' className={ classes.title }></Typography><Typography variant='h4' onClick={ () => { this.props.setCollateralAmountPercent(100) } } className={ classes.value } noWrap>{ 'Balance: '+ ( collateralAsset.balance ? collateralAsset.balance.toFixed(4) : '0.0000') } { collateralAsset.symbol }</Typography>
+                <Typography variant='h3' className={ classes.title }></Typography><Typography variant='h4' onClick={ () => { this.props.setCollateralAmountPercent(100) } } className={ classes.value } noWrap>{ 'Balance: '+ ( collateralAsset.balance ? (Math.floor(collateralAsset.balance*10000)/10000).toFixed(4) : '0.0000') } { collateralAsset.symbol }</Typography>
             </div> }
             { this.renderAssetSelect('asset', asset, assetOptions, assetError) }
           </div>

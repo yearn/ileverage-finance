@@ -17,8 +17,8 @@ import {
   ERROR,
   CONNECTION_CONNECTED,
   CONNECTION_DISCONNECTED,
-  TRADE_POSITION,
-  TRADE_POSITION_RETURNED,
+  CLOSE_POSITION,
+  CLOSE_POSITION_RETURNED,
   GET_DEBT_BALANCES,
   DEBT_BALANCES_RETURNED
 } from '../../constants'
@@ -146,7 +146,7 @@ const styles = theme => ({
   },
 });
 
-class Position extends Component {
+class Close extends Component {
 
   constructor() {
     super()
@@ -156,10 +156,10 @@ class Position extends Component {
     this.state = {
       account: account,
       collateralOptions: store.getStore('collateralOptions'),
-      collateralAsset: null,
+      collateralAsset: { id: 'dai' },
       collateralAmount: '',
       receiveAmount: '',
-      receiveAsset: null
+      receiveAsset: { id: 'usdc' },
     }
 
     if(account && account.address) {
@@ -171,7 +171,7 @@ class Position extends Component {
     emitter.on(ERROR, this.errorReturned);
     emitter.on(CONNECTION_CONNECTED, this.connectionConnected);
     emitter.on(CONNECTION_DISCONNECTED, this.connectionDisconnected);
-    emitter.on(TRADE_POSITION_RETURNED, this.tradeReturned);
+    emitter.on(CLOSE_POSITION_RETURNED, this.closeReturned);
     emitter.on(DEBT_BALANCES_RETURNED, this.debtReturned);
   }
 
@@ -179,12 +179,13 @@ class Position extends Component {
     emitter.removeListener(ERROR, this.errorReturned);
     emitter.removeListener(CONNECTION_CONNECTED, this.connectionConnected);
     emitter.removeListener(CONNECTION_DISCONNECTED, this.connectionDisconnected);
-    emitter.removeListener(TRADE_POSITION_RETURNED, this.tradeReturned);
+    emitter.removeListener(CLOSE_POSITION_RETURNED, this.closeReturned);
     emitter.removeListener(DEBT_BALANCES_RETURNED, this.debtReturned);
   };
 
-  tradeReturned = (txHash) => {
-    this.setState({ snackbarMessage: null, snackbarType: null, loading: false, collateralAmount: '', collateralAsset: null, receiveAsset: null })
+  closeReturned = (txHash) => {
+    console.log(txHash)
+    this.setState({ snackbarMessage: null, snackbarType: null, loading: false, collateralAmount: '' })
     const that = this
     setTimeout(() => {
       const snackbarObj = { snackbarMessage: txHash, snackbarType: 'Hash' }
@@ -211,7 +212,36 @@ class Position extends Component {
   };
 
   debtReturned = (balances) => {
-    this.setState({ collateralOptions: store.getStore('collateralOptions') })
+
+    const collateralOptions = store.getStore('collateralOptions')
+    const { collateralAsset, receiveAsset } = this.state
+
+    let colAsset = collateralOptions.filter((asset) => { return asset.id === collateralAsset.id })
+
+    if(colAsset.length > 0) {
+      colAsset = colAsset[0]
+    } else {
+      colAsset = null
+    }
+
+    let recAsset = collateralOptions.filter((asset) => { return asset.id === receiveAsset.id })
+
+    if(colAsset.length > 0) {
+      recAsset = recAsset[0]
+    } else {
+      recAsset = null
+    }
+
+    this.setState({
+      collateralOptions: collateralOptions,
+      collateralAsset: colAsset,
+      receiveAsset: recAsset
+    })
+
+    const that = this
+    setTimeout(() => {
+      that.setCollateralAmountPercent(100)
+    }, 50)
   };
 
   errorReturned = (error) => {
@@ -248,7 +278,7 @@ class Position extends Component {
           <div className={ classes.notConnectedContainer }>
             <Typography variant={'h5'} className={ classes.disaclaimer }>This project is in beta. Use at your own risk.</Typography>
             <div className={ classes.introCenter }>
-              <Typography variant='h2'>{ t('Position.Intro') }</Typography>
+              <Typography variant='h2'>{ t('Close.Intro') }</Typography>
             </div>
             <div className={ classes.connectContainer }>
               <Button
@@ -258,7 +288,7 @@ class Position extends Component {
                 disabled={ loading }
                 onClick={ this.overlayClicked }
                 >
-                <Typography className={ classes.buttonText } variant={ 'h5'}>{ t('Position.Connect') }</Typography>
+                <Typography className={ classes.buttonText } variant={ 'h5'}>{ t('Close.Connect') }</Typography>
               </Button>
             </div>
           </div>
@@ -267,7 +297,7 @@ class Position extends Component {
           <div className={ classes.card }>
             <Typography variant={'h5'} className={ classes.disaclaimer }>This project is in beta. Use at your own risk.</Typography>
             <div className={ classes.intro }>
-              <Typography variant='h2' className={ classes.introText }>{ t('Position.Intro') }</Typography>
+              <Typography variant='h2' className={ classes.introText }>{ t('Close.Intro') }</Typography>
               <Card className={ classes.addressContainer } onClick={this.overlayClicked}>
                 <Typography variant={ 'h5'} noWrap>{ address }</Typography>
                 <div style={{ background: '#DC6BE5', opacity: '1', borderRadius: '10px', width: '10px', height: '10px', marginRight: '3px', marginTop:'3px', marginLeft:'6px' }}></div>
@@ -283,10 +313,10 @@ class Position extends Component {
                 variant="outlined"
                 color="primary"
                 disabled={ loading }
-                onClick={ this.onTrade }
+                onClick={ this.onClose }
                 fullWidth
                 >
-                <Typography className={ classes.buttonText } variant={ 'h5'} color='secondary'>{ t('Position.Trade') }</Typography>
+                <Typography className={ classes.buttonText } variant={ 'h5'} color='secondary'>{ t('Close.Trade') }</Typography>
               </Button>
             </Card>
           </div>
@@ -298,18 +328,18 @@ class Position extends Component {
     )
   };
 
-  onTrade = () => {
+  onClose = () => {
     this.setState({ collateralAmountError: false })
 
     const { collateralAsset, collateralAmount, receiveAsset } = this.state
 
-    if(!collateralAmount || isNaN(collateralAmount) || collateralAmount <= 0 || parseFloat(collateralAmount) > collateralAsset.position) {
-      this.setState({ collateralAmountError: true })
-      return false
-    }
+    // if(!collateralAmount || isNaN(collateralAmount) || collateralAmount <= 0 || parseFloat(collateralAmount) > collateralAsset.position) {
+    //   this.setState({ collateralAmountError: true })
+    //   return false
+    // }
 
     this.setState({ loading: true })
-    dispatcher.dispatch({ type: TRADE_POSITION, content: { collateralAsset: collateralAsset, collateralAmount: collateralAmount, receiveAsset: receiveAsset } })
+    dispatcher.dispatch({ type: CLOSE_POSITION, content: { collateralAsset: collateralAsset, collateralAmount: collateralAmount, receiveAsset: receiveAsset } })
   }
 
   setReceiveAsset = (asset) => {
@@ -327,7 +357,7 @@ class Position extends Component {
   setCollateralAmountPercent = (percent) => {
     const { collateralAsset } = this.state
 
-    const position = collateralAsset.position
+    const position = collateralAsset.balance
     let collateralAmount = position*percent/100
 
     collateralAmount = Math.floor(collateralAmount*10000)/10000;
@@ -357,4 +387,4 @@ class Position extends Component {
   }
 }
 
-export default withNamespaces()(withRouter(withStyles(styles)(Position)));
+export default withNamespaces()(withRouter(withStyles(styles)(Close)));

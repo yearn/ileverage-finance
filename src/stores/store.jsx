@@ -9,8 +9,6 @@ import {
   OPEN_POSITION_RETURNED,
   GET_DEBT_BALANCES,
   DEBT_BALANCES_RETURNED,
-  TRADE_POSITION,
-  TRADE_POSITION_RETURNED,
   EXIT_POSITION,
   EXIT_POSITION_RETURNED,
   CLOSE_POSITION,
@@ -118,9 +116,6 @@ class Store {
             break;
           case GET_DEBT_BALANCES:
             this.getDebtBalances(payload)
-            break;
-          case TRADE_POSITION:
-            this.tradePosition(payload)
             break;
           case EXIT_POSITION:
             this.exitPosition(payload)
@@ -288,17 +283,17 @@ class Store {
 
     async.map(assets, (asset, callback) => {
       async.parallel([
-        (callbackInner) => { this._getDebt(web3, asset, account, callbackInner) },
-        (callbackInner) => { this._getPrincipal(web3, asset, account, callbackInner) },
-        (callbackInner) => { this._getUserInterest(web3, asset, account, callbackInner) },
-        (callbackInner) => { this._getPosition(web3, asset, account, callbackInner) },
+        // (callbackInner) => { this._getDebt(web3, asset, account, callbackInner) },
+        // (callbackInner) => { this._getPrincipal(web3, asset, account, callbackInner) },
+        // (callbackInner) => { this._getUserInterest(web3, asset, account, callbackInner) },
+        // (callbackInner) => { this._getPosition(web3, asset, account, callbackInner) },
         (callbackInner) => { this._getERC20Balance(web3, asset, account, callbackInner) },
       ], (err, data) => {
-        asset.debt = data[0]
-        asset.principal = data[1]
-        asset.interest = data[2]
-        asset.position = data[3]
-        asset.balance = data[4]
+        asset.balance = data[0]
+        // asset.debt = data[1]
+        // asset.principal = data[2]
+        // asset.interest = data[3]
+        // asset.position = data[4]
 
         callback(null, asset)
       })
@@ -370,20 +365,25 @@ class Store {
     }
   }
 
-  tradePosition = (payload) => {
+  closePosition = (payload) => {
     const account = store.getStore('account')
     const { collateralAsset, receiveAsset, collateralAmount } = payload.content
 
-    this._callITradePosition(collateralAsset, receiveAsset, account, collateralAmount, (err, tradeResult) => {
-      if(err) {
-        return emitter.emit(ERROR, err);
-      }
+    console.log(collateralAsset)
+    console.log(receiveAsset)
+    console.log(collateralAmount)
 
-      return emitter.emit(TRADE_POSITION_RETURNED, tradeResult)
-    })
+    // this._callClosePosition(collateralAsset, receiveAsset, account, collateralAmount, (err, tradeResult) => {
+    //   if(err) {
+    //     return emitter.emit(ERROR, err);
+    //   }
+    //
+    //   return emitter.emit(TRADE_POSITION_RETURNED, tradeResult)
+    // })
+    return emitter.emit(CLOSE_POSITION_RETURNED, 'hash')
   }
 
-  _callITradePosition = async (collateralAsset, receiveAsset, account, amount, callback) => {
+  _callClosePosition = async (collateralAsset, receiveAsset, account, amount, callback) => {
     const web3 = new Web3(store.getStore('web3context').library.provider);
 
     const collateralContract = new web3.eth.Contract(config.traderContractABI, config.traderContractAddress)
@@ -495,58 +495,6 @@ class Store {
     var amountToSend = (amount*10**asset.decimals) + ''
 
     collateralContract.methods.withdrawCollateral(asset.erc20address, amountToSend).send({ from: account.address, gasPrice: web3.utils.toWei('6', 'gwei') })
-      .on('transactionHash', function(hash){
-        console.log(hash)
-        callback(null, hash)
-      })
-      .on('confirmation', function(confirmationNumber, receipt){
-        console.log(confirmationNumber, receipt);
-      })
-      .on('receipt', function(receipt){
-        console.log(receipt);
-      })
-      .on('error', function(error) {
-        if (!error.toString().includes("-32601")) {
-          if(error.message) {
-            return callback(error.message)
-          }
-          callback(error)
-        }
-      })
-      .catch((error) => {
-        if (!error.toString().includes("-32601")) {
-          if(error.message) {
-            return callback(error.message)
-          }
-          callback(error)
-        }
-      })
-  }
-
-  closePosition = (payload) => {
-    const account = store.getStore('account')
-    const { asset, amount } = payload.content
-
-    this._callClosePosition(asset, account, amount, (err, res) => {
-      if(err) {
-        return emitter.emit(ERROR, err);
-      }
-
-      return emitter.emit(CLOSE_POSITION_RETURNED, res)
-    })
-  }
-
-  _callClosePosition = async (asset, account, amount, callback) => {
-    const web3 = new Web3(store.getStore('web3context').library.provider);
-
-    const collateralContract = new web3.eth.Contract(config.traderContractABI, config.traderContractAddress)
-
-    var amountToSend = (amount*10**asset.decimals) + ''
-
-    console.log(asset.erc20address)
-    console.log(amountToSend)
-
-    collateralContract.methods.closePosition(asset.erc20address, amountToSend).send({ from: account.address, gasPrice: web3.utils.toWei('6', 'gwei') })
       .on('transactionHash', function(hash){
         console.log(hash)
         callback(null, hash)

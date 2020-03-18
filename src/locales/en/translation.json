@@ -15,11 +15,11 @@
   "Debt.Debt": "Debt",
   "Debt.Position": "Position",
 
-  "Position.Intro": "Trade Position. Simple.",
-  "Position.Connect": "Connect wallet",
-  "Position.Trade": "Trade position",
-  "Position.IHave": "Send Position",
-  "Position.IWillReceive": "Receive Position",
+  "Close.Intro": "Close Position. Simple.",
+  "Close.Connect": "Connect wallet",
+  "Close.Trade": "Close position",
+  "Close.IHave": "Close asset",
+  "Close.IWillReceive": "Receive asset",
 
   "Asset.ClosePosition":  "Close Position",
   "Asset.ExitPosition":  "Exit Position",

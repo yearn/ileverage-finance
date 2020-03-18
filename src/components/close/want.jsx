@@ -65,10 +65,14 @@ class Want extends Component {
     super()
 
     this.state = {
-      asset: '',
-      assetOptions: props.receiveOptions,
+      asset: 'usdc',
+      assetOptions: props.receiveOptions.filter((option) => { return option.id === 'usdc' }),
       assetError: false
     }
+  }
+
+  componentWillReceiveProps(props) {
+    this.setState({ assetOptions: props.receiveOptions.filter((option) => { return option.id === 'usdc' }), asset: props.receiveAsset ? props.receiveAsset.id : 'usdc' })
   }
 
   render() {
@@ -81,7 +85,7 @@ class Want extends Component {
     return (
       <div className={ classes.root }>
         <div className={ classes.inputCard }>
-          <Typography variant='h3' className={ classes.inputCardHeading }>{ t("Position.IWillReceive") }</Typography>
+          <Typography variant='h3' className={ classes.inputCardHeading }>{ t("Close.IWillReceive") }</Typography>
           { this.renderAssetSelect('asset', asset, assetOptions, null) }
         </div>
       </div>

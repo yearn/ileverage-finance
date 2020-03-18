@@ -154,7 +154,7 @@ class Home extends Component {
           <Typography variant={'h1'} className={ `${classes.title} title` }>{ t("Home.Open") }</Typography>
         </Card>
         <Card className={ `${classes.card} ${classes.apr}` } onClick={ () => { /*this.nav(location.pathname+'close')*/ } }>
-          <MoneyOffIcon className={ `${classes.icon} icon` } /> 
+          <MoneyOffIcon className={ `${classes.icon} icon` } />
           <Typography variant={'h1'} className={ `${classes.title} title` }>{ t("Home.Close") }</Typography>
         </Card>
       </div>

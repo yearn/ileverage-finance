@@ -45,9 +45,6 @@ class Leverage extends Component {
           <ToggleButton value={4} aria-label="v3">
             <Typography variant={ 'h3' }>4X</Typography>
           </ToggleButton>
-          <ToggleButton value={5} aria-label="v3">
-            <Typography variant={ 'h3' }>5X</Typography>
-          </ToggleButton>
         </ToggleButtonGroup>
       </div>
     )

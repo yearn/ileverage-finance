@@ -161,7 +161,7 @@ class Open extends Component {
       collateralAmount: '',
       receiveAmount: '',
       receiveAsset: { id: 'dai' },
-      leverage: 5
+      leverage: 4
     }
 
     if(account && account.address) {
@@ -186,7 +186,7 @@ class Open extends Component {
   };
 
   openPositionReturned = (txHash) => {
-    this.setState({ snackbarMessage: null, snackbarType: null, loading: false, collateralAmount: '', collateralAsset: null, receiveAsset: null })
+    this.setState({ snackbarMessage: null, snackbarType: null, loading: false, collateralAmount: '' })
     const that = this
     setTimeout(() => {
       const snackbarObj = { snackbarMessage: txHash, snackbarType: 'Hash' }

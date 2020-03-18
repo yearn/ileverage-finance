@@ -99,10 +99,14 @@ class Have extends Component {
     super()
 
     this.state = {
-      asset: '',
-      assetOptions: props.collateralOptions,
+      asset: 'dai',
+      assetOptions: props.collateralOptions.filter((option) => { return option.id === 'dai' }),
       assetError: false,
     }
+  }
+
+  componentWillReceiveProps(props) {
+    this.setState({ assetOptions: props.collateralOptions.filter((option) => { return option.id === 'dai' }), asset: props.collateralAsset.id })
   }
 
   render() {
@@ -115,13 +119,15 @@ class Have extends Component {
       amountError
     } = this.state;
 
+    console.log(collateralAsset)
+
     return (
       <div className={ classes.root }>
         <div className={ classes.inputCard }>
-          <Typography variant='h3' className={ classes.inputCardHeading }>{ t("Position.IHave") }</Typography>
+          <Typography variant='h3' className={ classes.inputCardHeading }>{ t("Close.IHave") }</Typography>
           <div className={ classes.tradeContainer }>
             { collateralAsset && <div className={ classes.balances }>
-                <Typography variant='h3' className={ classes.title }></Typography><Typography variant='h4' onClick={ () => { this.props.setCollateralAmountPercent(100) } } className={ classes.value } noWrap>{ 'Position: '+ ( collateralAsset.position ? collateralAsset.position.toFixed(4) : '0.0000') } { collateralAsset.symbol }</Typography>
+                <Typography variant='h3' className={ classes.title }></Typography><Typography variant='h4' onClick={ () => { this.props.setCollateralAmountPercent(100) } } className={ classes.value } noWrap>{ 'Position: '+ ( collateralAsset.balance ? (Math.floor(collateralAsset.balance*10000)/10000).toFixed(4) : '0.0000') } { collateralAsset.symbol }</Typography>
             </div> }
             { this.renderAssetSelect('asset', asset, assetOptions, assetError) }
           </div>
