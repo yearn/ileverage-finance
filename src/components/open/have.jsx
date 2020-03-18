@@ -111,7 +111,7 @@ class Have extends Component {
   }
 
   render() {
-    const { classes, collateralAsset, collateralAmount, loading, t } = this.props;
+    const { classes, collateralAsset, collateralAmount, collateralAmountError, loading, t } = this.props;
     const {
       asset,
       assetOptions,
@@ -131,7 +131,7 @@ class Have extends Component {
             { this.renderAssetSelect('asset', asset, assetOptions, assetError) }
           </div>
           <div className={ classes.tradeContainer }>
-            { this.renderAmountInput('amount', collateralAmount, false, 'Amount', '0.00', (collateralAsset ? collateralAsset.symbol : '')) }
+            { this.renderAmountInput('amount', collateralAmount, collateralAmountError, 'Amount', '0.00', (collateralAsset ? collateralAsset.symbol : '')) }
             <div className={ classes.scaleContainer }>
               <Button
                 className={ classes.scale }

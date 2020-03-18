@@ -259,6 +259,7 @@ class Open extends Component {
       collateralOptions,
       collateralAsset,
       collateralAmount,
+      collateralAmountError,
       receiveAsset,
       receiveAmount,
       leverage,
@@ -303,7 +304,7 @@ class Open extends Component {
               </Card>
             </div>
             <Card className={ classes.tradeContainer }>
-              <Have collateralOptions={ collateralOptions } setCollateralAsset={ this.setCollateralAsset } collateralAsset={ collateralAsset } collateralAmount={ collateralAmount } setCollateralAmount={ this.setCollateralAmount } setCollateralAmountPercent={ this.setCollateralAmountPercent } loading={ loading } />
+              <Have collateralOptions={ collateralOptions } setCollateralAsset={ this.setCollateralAsset } collateralAsset={ collateralAsset } collateralAmount={ collateralAmount } collateralAmountError={ collateralAmountError } setCollateralAmount={ this.setCollateralAmount } setCollateralAmountPercent={ this.setCollateralAmountPercent } loading={ loading } />
               <div className={ classes.sepperator }></div>
               <Leverage loading={ loading } leverage={ leverage } setLeverage={ this.setLeverage }/>
               <div className={ classes.sepperator }></div>
@@ -334,7 +335,7 @@ class Open extends Component {
 
     const { collateralAsset, collateralAmount, receiveAsset, leverage } = this.state
 
-    if(!collateralAmount || isNaN(collateralAmount) || collateralAmount <= 0 || parseFloat(collateralAmount) > collateralAsset.balance) {
+    if(!collateralAmount || isNaN(collateralAmount) || collateralAmount < 50 || parseFloat(collateralAmount) > collateralAsset.balance) {
       this.setState({ collateralAmountError: true })
       return false
     }
